@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search,
   MoreHorizontal,
@@ -54,6 +54,8 @@ const AdminUsers: React.FC = () => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const { toast } = useToast();
+  const totalAdminsRef = useRef(totalAdmins);
+  useEffect(() => { totalAdminsRef.current = totalAdmins; }, [totalAdmins]);
 
   // Debounce de busca: aguarda 400ms antes de fazer fetch
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -67,11 +69,7 @@ const AdminUsers: React.FC = () => {
     setPagination((p) => ({ ...p, page: 1 }));
   }, [debouncedSearch, roleFilter]);
 
-  useEffect(() => {
-    loadUsers();
-  }, [pagination.page, pagination.pageSize, debouncedSearch, roleFilter]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const result = await api.getUsers({
@@ -89,7 +87,7 @@ const AdminUsers: React.FC = () => {
             totalPages: result.data!.pagination!.totalPages,
           }));
           // Conta total de admins (chamada leve, sem paginação)
-          if (totalAdmins === 0 && roleFilter === 'all') {
+          if (totalAdminsRef.current === 0 && roleFilter === 'all') {
             api.getUsers({ page: 1, pageSize: 1, role: 'admin' }).then((r) => {
               if (r.data?.pagination) setTotalAdmins(r.data.pagination.total);
             });
@@ -101,7 +99,11 @@ const AdminUsers: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.pageSize, debouncedSearch, roleFilter, toast]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   // Filtragem agora é server-side; renderiza tudo o que veio
   const filteredUsers = users;

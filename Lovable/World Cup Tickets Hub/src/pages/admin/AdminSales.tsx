@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search,
   Download,
@@ -78,6 +78,8 @@ const AdminSales: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [pagination, setPagination] = useState({ page: 1, pageSize: 15, total: 0, totalPages: 0 });
   const [stats, setStats] = useState<Stats | null>(null);
+  const statsRef = useRef(stats);
+  useEffect(() => { statsRef.current = stats; }, [stats]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -97,11 +99,7 @@ const AdminSales: React.FC = () => {
     setPagination((p) => ({ ...p, page: 1 }));
   }, [debouncedSearch, statusFilter]);
 
-  useEffect(() => {
-    loadData();
-  }, [pagination.page, pagination.pageSize, debouncedSearch, statusFilter]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -112,8 +110,10 @@ const AdminSales: React.FC = () => {
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: debouncedSearch || undefined,
       }),
-      // Stats só carrega 1x na sessão (cache do react-query no statsRes evita refetch)
-      stats ? Promise.resolve({ data: { stats }, error: undefined }) : api.getAdminStats(),
+      // Stats só carrega 1x na sessão; statsRef evita refetch sem virar dep do callback
+      statsRef.current
+        ? Promise.resolve({ data: { stats: statsRef.current }, error: undefined })
+        : api.getAdminStats(),
     ]);
 
     const errMsg = salesRes.error || statsRes.error;
@@ -135,7 +135,11 @@ const AdminSales: React.FC = () => {
     }
     if (statsRes.data?.stats) setStats(statsRes.data.stats);
     setLoading(false);
-  };
+  }, [pagination.page, pagination.pageSize, debouncedSearch, statusFilter, toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Filtragem agora é server-side
   const filteredSales = sales;

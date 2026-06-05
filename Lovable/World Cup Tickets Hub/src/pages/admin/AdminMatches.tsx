@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
   Search,
@@ -120,11 +120,7 @@ const AdminMatches: React.FC = () => {
     status: 'scheduled',
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [matchesRes, teamsRes, stadiumsRes] = await Promise.all([
@@ -141,7 +137,11 @@ const AdminMatches: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredMatches = matches.filter((match) => {
     const matchesSearch =

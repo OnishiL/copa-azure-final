@@ -87,7 +87,7 @@ const Matches: React.FC = () => {
     queryFn: () => api.getMatches(),
   });
 
-  const allMatches: ApiMatch[] = data?.data?.matches || [];
+  const allMatches = useMemo<ApiMatch[]>(() => data?.data?.matches || [], [data]);
 
   const filteredMatches = useMemo(() => {
     return allMatches.filter((match) => {

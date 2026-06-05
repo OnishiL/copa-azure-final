@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Check, Download, Printer, Home, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ const PaymentConfirmation: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const tickets: TicketData[] = location.state?.tickets || [];
+  const tickets = useMemo<TicketData[]>(() => location.state?.tickets || [], [location.state]);
   const totalAmount: number = location.state?.totalAmount || 0;
 
   useEffect(() => {

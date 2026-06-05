@@ -83,7 +83,7 @@ const Dashboard: React.FC = () => {
   }, [teamsError]);
 
   const stats = statsData?.data?.stats as AdminStats | undefined;
-  const allSales = (salesData?.data?.sales || []) as SaleRow[];
+  const allSales = React.useMemo(() => (salesData?.data?.sales || []) as SaleRow[], [salesData]);
   const matches = matchesData?.data?.matches || [];
   const stadiums = stadiumsData?.data?.stadiums || [];
   const teams = teamsData?.data?.teams || [];
