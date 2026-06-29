@@ -37,7 +37,7 @@ Há **duas divisões de trabalho** bem distintas:
   Fase 4  Infra do gateway: ACR + Environment + Container App + App Settings
 ─── Só agora entra o fork (último passo de deploy) ─────────────
   Fase 5  GitHub: Variables + Secrets no SEU fork
-  Fase 6  Fork + Sync + Actions:  acao=migrations → gateway → frontend
+  Fase 6  Fork (todas as branches) + PR lab-quartas→main + Actions: migrations → gateway → frontend
 ─── Validação no browser / SQL ─────────────────────────────────
   Fase 7  Login cliente (CIAM)   Fase 8  Login admin (workforce)
   Fase 9  Migração users v1 → CIAM (SQL — o clímax)
@@ -307,14 +307,17 @@ No **seu fork** → **Settings → Secrets and variables → Actions**. Os **nom
 
 Toda a infra acima foi criada **à mão**. Este é o **último bloco de deploy**: o Actions só **constrói e publica código** (schema + imagens). Precisa do **fork** porque é nele que ficam o workflow e os Secrets/Vars.
 
-### 6.1 Preparar o fork
+### 6.1 Preparar o fork (tudo pela web do GitHub)
 
-1. Você reusa o **fork das Oitavas**. Abra-o no GitHub → **Sync fork** para trazer a branch **`phase-04-quartas`** (e as migrations das Quartas) do upstream.
-2. Se **ainda não tem fork**: forke o repo **com TODAS as branches** (na tela de fork, **desmarque** *Copy the `main` branch only*).
+A branch do lab no repositório do evento (org **TFTEC**) chama-se **`lab-quartas-de-final`** — ela traz o workflow `lab-quartas-de-final.yml` + o código e as migrations das Quartas.
+
+1. **Faça um fork NOVO** do repo do evento, **com TODAS as branches** — na tela de fork, **desmarque** *Copy the `main` branch only* → **Create fork**. Assim a `lab-quartas-de-final` (e a `lab-oitavas-de-final`) vêm junto.
+   > ⚠️ **Não reuse o fork das Oitavas.** O botão **Sync fork** do GitHub só atualiza a `main` e **não traz branches novas** — a `lab-quartas-de-final` não apareceria. Forkar de novo é o caminho limpo (e 100% pela web).
+2. **Habilite o workflow na `main` do seu fork:** no seu fork, abra um **Pull Request `lab-quartas-de-final` → `main`** (base = `main`, compare = `lab-quartas-de-final`) e faça o **merge**. Como a `main` ainda não tem o `lab-quartas-de-final.yml`, é esse PR que faz o workflow aparecer no Actions — e ele é o próprio **"exercício"** da aula. (Você nunca dá PR no repo da TFTEC, só no SEU fork.)
 
 ### 6.2 Rodar o workflow — nesta ordem
 
-Sempre em **Actions → "Lab Quartas de Final" → Run workflow → branch `phase-04-quartas`**, variando o `acao`:
+Sempre em **Actions → "Lab Quartas de Final" → Run workflow → branch `main`** (já com o workflow após o merge da 6.1), variando o `acao`:
 
 1. **`acao = migrations`** — aplica `phase-01`, `phase-03` e a nova **`phase-04-ciam-link.sql`** (cria `users.entra_oid` **vazia** + índice `UQ_users_entra_oid`). O workflow abre/reverte acesso temporário ao SQL privado (idempotente; pode repetir). O **preenchimento** da coluna é o hands-on da [Fase 9](#fase-9--migração-users-v1--ciam-sql--o-clímax) — de propósito **não** roda aqui.
 2. **`acao = gateway`** — `dotnet build/test`, **build & push** da imagem no ACR (`cr<sufixo>.azurecr.io/gateway:<sha>`), `az containerapp update --image` (troca o placeholder pela imagem real) + smoke. Re-rode só quando trocar o código.
@@ -478,7 +481,8 @@ Adiantamento para o **último lab** (chatbot LLM). Como você cria a conta Googl
 | Vars do gateway "não encontradas" | esqueceu o prefixo `PHASE04_` | usar `PHASE04_CONTAINERAPP_NAME` / `PHASE04_RESOURCE_GROUP` (Fase 5) |
 | `redirect_uri_mismatch` (Google) | redirect URI ≠ callback do Entra | cadastrar **todos** os 7 URIs (Apêndice A) |
 | Migrations falham por firewall | SQL privado; runner sem regra | o workflow abre/reverte acesso temporário (já tratado no YAML) |
-| Branch `phase-04-quartas` não aparece no fork | fork desatualizado | **Sync fork** com o upstream (Fase 6.1) |
+| `lab-quartas-de-final` não aparece no fork | fork feito "só com a main" (Sync fork não traz branches novas) | **fork NOVO** com TODAS as branches — desmarque *Copy the `main` branch only* (Fase 6.1) |
+| Workflow "Lab Quartas de Final" não aparece no Actions | `main` do fork ainda sem o `lab-quartas-de-final.yml` | abra o **PR `lab-quartas-de-final` → `main`** no seu fork e faça o merge (Fase 6.1) |
 | Deploy do frontend `Publish profile is invalid` | basic-auth Off ao capturar o profile | ligar **SCM Basic Auth On**, recapturar o profile, atualizar o secret (Fase 6.2) |
 | Usuário não migra / `so v1` | UPDATE não rodou / email divergente | re-executar o UPDATE idempotente (Fase 9.4) |
 | Só "Use Azure Subscription" (sem trial) | trial 30d quase nunca é ofertado | seguir por **Use Azure Subscription** — free 50K MAU, não expira (Fase 1.1) |
